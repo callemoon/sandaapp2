@@ -35,8 +35,20 @@ List<String> captions =
   'sovrum uppsala'
 ];
 
+List<Color> tileColors =
+[
+  Colors.red,
+  Colors.green,
+  Colors.blue,
+  Colors.grey,
+  Colors.white,
+  Colors.yellow
+];
+
 double tileWidth = 175;
 double tileHeight = 175;
+double rowSpacing = 10;
+double columnSpacing = 10;
 
 void main() {
   runApp(const MyApp());
@@ -228,13 +240,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[0], 0, Colors.grey, Icons.bed_outlined),
-                      Container(width: 10),
-                      createTile(captions[1], 1, Colors.blue, Icons.arrow_upward_outlined),
+                      createTile(captions[0], 0, tileColors[0], Icons.bed_outlined),
+                      Container(width: columnSpacing),
+                      createTile(captions[1], 1, tileColors[1], Icons.arrow_upward_outlined),
                     ]),
-                Container(height: 10),
+                Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
-                    children: [Container(
+                    children: [
+                      /*
+                      Container(
                         width: tileWidth,
                         height: tileHeight,
                         color: Colors.red,
@@ -255,24 +269,26 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               Container(height: 20),
                             ])),
-                      Container(width: 10),
-                      createTile(captions[3], 3, Colors.green, Icons.park_rounded)
+                       */
+                      createTile(captions[2], 2, tileColors[2], Icons.kitchen),
+                      Container(width: columnSpacing),
+                      createTile(captions[3], 3, tileColors[3], Icons.park_rounded)
                 ]),
-                Container(height: 10),
+                Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[5], 5, Colors.white, Icons.kitchen),
-                      Container(width: 10),
+                      createTile(captions[5], 5, tileColors[5], Icons.kitchen),
+                      Container(width: columnSpacing),
                       Container(
                           width: tileWidth,
                           height: tileHeight,
                           color: Colors.green,
                           )]),
-                Container(height: 10),
+                Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[4], 4, Colors.yellow, Icons.church),
-                      Container(width: 10),
+                      createTile(captions[4], 4, tileColors[4], Icons.church),
+                      Container(width: columnSpacing),
                       Image(width: tileWidth, height: tileHeight, image: myImage)
                     ]),
               ],
@@ -293,12 +309,7 @@ class _MyDiagrams extends State<Diagrams> {
   static const int diagrams = 6;
   int timespan = 24;
 
-  List<LineChartBarData>? list1 = [LineChartBarData(spots: [])];
-  List<LineChartBarData>? list2 = [LineChartBarData(spots: [])];
-  List<LineChartBarData>? list3 = [LineChartBarData(spots: [])];
-  List<LineChartBarData>? list4 = [LineChartBarData(spots: [])];
-  List<LineChartBarData>? list5 = [LineChartBarData(spots: [])];
-  List<LineChartBarData>? list6 = [LineChartBarData(spots: [])];
+  List<List<LineChartBarData>> listOfLists = List.generate(diagrams, (_) => [LineChartBarData(spots: [])]);
 
   String filterString = "";
 
@@ -338,12 +349,9 @@ class _MyDiagrams extends State<Diagrams> {
     }
 
     setState(() {
-      list1 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[0])];
-      list2 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[1])];
-      list3 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[2])];
-      list4 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[3])];
-      list5 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[4])];
-      list6 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[5])];
+      for (int i = 0; i < diagrams; i++) {
+        listOfLists[i] = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[i])];
+      }
     });
   }
 
@@ -407,12 +415,12 @@ class _MyDiagrams extends State<Diagrams> {
             });}, child: Text("sista 60 min")),
             ]),
 
-          createDiagram(list1!, captions[0], 5 , 25),
-          createDiagram(list2!, captions[1], 5 , 25),
-          createDiagram(list3!, captions[2], 5 , 25),
-          createDiagram(list4!, captions[3], -25 , 25),
-          createDiagram(list5!, captions[4], -25 , 25),
-          createDiagram(list6!, captions[5], 5 , 25),
+          createDiagram(listOfLists[0]!, captions[0], 5 , 25),
+          createDiagram(listOfLists[1]!, captions[1], 5 , 25),
+          createDiagram(listOfLists[2]!, captions[2], 5 , 25),
+          createDiagram(listOfLists[3]!, captions[3], -25 , 25),
+          createDiagram(listOfLists[4]!, captions[4], -25 , 25),
+          createDiagram(listOfLists[5]!, captions[5], 5 , 25),
         ]));}
 }
 
