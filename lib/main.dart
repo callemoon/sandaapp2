@@ -1,0 +1,700 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:fl_chart/fl_chart.dart';
+
+SharedPreferences ?prefs;
+XFile? file = XFile('assets/katt.jpg');
+
+FileImage myImage = FileImage(File('assets/katt.jpg'));
+
+List<String> requestStrings =
+[
+  'https://api.thingspeak.com/channels/631325/fields/1.json?api_key=IA9TGDTR2351DC1I',  // sovrum
+  'https://api.thingspeak.com/channels/2011583/fields/1.json?api_key=EL96SBAO527BKNP3', // Övervåning
+  'https://api.thingspeak.com/channels/2014046/fields/1.json?api_key=68ODS47UMTXTWR9K', // Kök
+  'https://api.thingspeak.com/channels/2013865/fields/1.json?api_key=PLWLFP0HG4TE9BNZ', // ute
+  'https://api.thingspeak.com/channels/2019519/fields/1.json?api_key=3HZ51EFUGWRX9DBQ', // uppsala
+  'https://api.thingspeak.com/channels/2832057/fields/1.json?api_key=SYH9X8X6V0F23933'  // uppsala inne
+];
+
+List<String> captions =
+[
+  'sovrum sanda',
+  'övervåning sanda',
+  'kök sanda',
+  'ute sanda',
+  'ute uppsala',
+  'sovrum uppsala'
+];
+
+double tileWidth = 175;
+double tileHeight = 175;
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Temperaturer',
+      home: const MyHomePage(title: 'Mitt hem'),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
+
+  final String title;
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  double hum1 = 0.0;
+
+  static const int temperatures = 6;
+
+  List<double> tempArray = List.filled(temperatures, 0.0);
+  List<String> timeArray = List.filled(temperatures, '');
+
+  Timer? periodicTimer;
+  Timer? secondTimer;
+
+  double tick = 0.0;
+
+  void GetData() async
+  {
+    requestStrings.asMap().forEach((index, requestString) async {
+      http.Response result = await http.get(Uri.parse(requestString + '&results=1'));
+      dynamic map = jsonDecode(result.body);
+      setState(() {
+        if(map['feeds'][0]['field1'] != null)
+        {
+          tempArray[index] = double.parse(map['feeds'][0]['field1']);
+          String time_tmp = map['feeds'][0]['created_at'];
+          List<String> list = time_tmp.split("T");
+          timeArray[index] = list[0] + " " + list[1].substring(0, 8);
+        }
+      });
+    });
+
+    /*
+    // Hum
+    result = await http.get(Uri.parse('https://api.thingspeak.com/channels/2014046/fields/2.json?api_key=68ODS47UMTXTWR9K&results=1'));
+    map = jsonDecode(result.body);
+    setState(() {
+      if(map['feeds'][0]['field2'] != null) {
+        hum1 = double.parse(map['feeds'][0]['field2']);
+      }
+    });
+     */
+  }
+
+  @override
+  void initState () {
+    super.initState();
+
+    GetPrefs();
+
+    GetData();
+  }
+
+  void GetPrefs () async {
+    prefs = await SharedPreferences.getInstance();
+
+    String? filename = prefs!.getString("filename");
+    int? updateInterval = prefs!.getInt("update-interval");
+
+    if(updateInterval == null || updateInterval! < 30)
+    {
+      updateInterval = 30;
+    }
+
+    if(filename != null)
+    {
+      myImage = FileImage(File(filename));
+    }
+
+    periodicTimer = Timer.periodic(
+        Duration(seconds: updateInterval!),
+            (timer)
+        {GetData();
+        tick=0;}
+    );
+
+    secondTimer = Timer.periodic(
+        Duration(seconds: 1),
+            (timer)
+        {setState(() {
+          tick+=1/updateInterval!;
+        });
+          }
+    );
+  }
+
+  Container createTile(String text, int index, Color tileColor, IconData tileIcon)
+  {
+    return Container(
+        width: tileWidth,
+        height: tileHeight,
+        color: tileColor,
+        child: Column( mainAxisAlignment: MainAxisAlignment.center,
+            children: [ Text(style: GoogleFonts.titilliumWeb(fontSize: 32,
+                fontWeight: FontWeight.w300), tempArray[index].toStringAsFixed(1) + '\u02da'),
+              Text(style: TextStyle(fontSize: 16), text),
+              IconButton(
+                  onPressed: () {
+                  },
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    tileIcon,
+                    size: 44.0,
+                    color: Colors.black,
+                  )
+              ),
+              Text(style: TextStyle(fontSize: 12), timeArray[index]),
+            ]));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text(widget.title),
+        ),
+        body: Align(
+            alignment: Alignment.center,
+            child: ListView(
+              padding: EdgeInsets.all(15),
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const Diagrams()),
+                          );
+                        }, icon: Icon(Icons.auto_graph)),
+                    IconButton(
+                        onPressed: () {
+                          setState(() {
+                            myImage = myImage;
+                          });
+                          showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AboutDialog(
+                                  applicationIcon: SizedBox(
+                                      width: 100,
+                                      height: 100,
+                                      child: Image(
+                                          image:
+                                          AssetImage('assets/katt.jpg'))),
+                                  applicationName: 'Sandaapp',
+                                  applicationVersion: '1.1.0',
+                                  applicationLegalese: '©2023-2025 Calle',
+                                );
+                              });
+                        },
+                        icon: Icon(Icons.info_outline)),
+                    IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Settings()),
+                          );
+                        }, icon: Icon(Icons.settings_outlined)),
+
+                  ],
+                ),
+                Container(height: 20),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      createTile(captions[0], 0, Colors.grey, Icons.bed_outlined),
+                      Container(width: 10),
+                      createTile(captions[1], 1, Colors.blue, Icons.arrow_upward_outlined),
+                    ]),
+                Container(height: 10),
+                Row(mainAxisAlignment: MainAxisAlignment.center,
+                    children: [Container(
+                        width: tileWidth,
+                        height: tileHeight,
+                        color: Colors.red,
+                        child: Column( mainAxisAlignment: MainAxisAlignment.center,
+                            children: [ Text(style: GoogleFonts.titilliumWeb(fontSize: 48,
+                                fontWeight: FontWeight.w300), tempArray[2].toStringAsFixed(1) + '\u02da'),
+                              Text(style: GoogleFonts.titilliumWeb(fontSize: 14,
+                                  fontWeight: FontWeight.w300), hum1.toStringAsFixed(1) + '%RH'),
+                              Text(style: TextStyle(fontSize: 14), captions[2]),
+                              IconButton(
+                                  onPressed: () {},
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                    Icons.kitchen,
+                                    size: 44.0,
+                                    color: Colors.black,
+                                  )
+                              ),
+                              Container(height: 20),
+                            ])),
+                      Container(width: 10),
+                      createTile(captions[3], 3, Colors.green, Icons.park_rounded)
+                ]),
+                Container(height: 10),
+                Row(mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      createTile(captions[5], 5, Colors.white, Icons.kitchen),
+                      Container(width: 10),
+                      Container(
+                          width: tileWidth,
+                          height: tileHeight,
+                          color: Colors.green,
+                          )]),
+                Container(height: 10),
+                Row(mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      createTile(captions[4], 4, Colors.yellow, Icons.church),
+                      Container(width: 10),
+                      Image(width: tileWidth, height: tileHeight, image: myImage)
+                    ]),
+              ],
+            )
+        ));
+  }
+}
+
+class Diagrams extends StatefulWidget {
+  const Diagrams({super.key});
+
+  @override
+  State<Diagrams> createState() => _MyDiagrams();
+}
+
+class _MyDiagrams extends State<Diagrams> {
+
+  static const int diagrams = 6;
+  int timespan = 24;
+
+  List<LineChartBarData>? list1 = [LineChartBarData(spots: [])];
+  List<LineChartBarData>? list2 = [LineChartBarData(spots: [])];
+  List<LineChartBarData>? list3 = [LineChartBarData(spots: [])];
+  List<LineChartBarData>? list4 = [LineChartBarData(spots: [])];
+  List<LineChartBarData>? list5 = [LineChartBarData(spots: [])];
+  List<LineChartBarData>? list6 = [LineChartBarData(spots: [])];
+
+  String filterString = "";
+
+  void GetData() async
+  {
+    if(timespan == 24) {
+      filterString = '&minutes=1440&average=60&round=1&offset=1';
+    }
+
+    if(timespan == 180) {
+      filterString = '&days=180&average=daily&round=1';
+    }
+
+    if(timespan == 14) {
+      filterString = '&days=14&average=daily&round=1';
+    }
+
+    if(timespan == 60) {
+      filterString = '&minutes=60&round=1&offset=1';
+    }
+
+    List<List<FlSpot>> spotList = List.generate(diagrams, (_) => []);
+
+    for(int i = 0; i < diagrams; i++)
+    {
+        http.Response result = await http.get(Uri.parse(requestStrings[i] + filterString));
+        dynamic map = jsonDecode(result.body);
+
+        for(int j = 0; j < map['feeds'].length; j++)
+        {
+          if(map['feeds'][j]['field1'] != null)
+          {
+            double a = double.parse(map['feeds'][j]['field1']);
+            spotList[i].add(FlSpot(j.toDouble(), a));
+          }
+        }
+    }
+
+    setState(() {
+      list1 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[0])];
+      list2 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[1])];
+      list3 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[2])];
+      list4 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[3])];
+      list5 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[4])];
+      list6 = [LineChartBarData(dotData: const FlDotData(show: false), spots: spotList[5])];
+    });
+  }
+
+  @override
+  void initState () {
+    super.initState();
+    GetData();
+  }
+
+  Column createDiagram(List<LineChartBarData> data, String text, double min, double max)
+  {
+    return Column(
+      children: [
+        Container(height: 10),
+        Divider(height: 1, indent: 20, endIndent: 20,),
+        Container(
+          padding: const EdgeInsets.all(10),
+          height: 250,
+          child: LineChart(
+            LineChartData(minY: min, maxY: max, backgroundColor: Colors.white10,
+            borderData: FlBorderData(show: false), lineBarsData: data),
+          ),
+        ),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(text)]),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text('Diagram'),
+        ),
+        body: ListView(children: [
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            TextButton(style: ButtonStyle(
+                foregroundColor: MaterialStateProperty.all<Color>(Colors.black),
+                backgroundColor: timespan == 180 ? MaterialStateProperty.all<Color>(Colors.grey):MaterialStateProperty.all<Color>(Colors.white),
+                ),
+                onPressed: (){setState(() {
+              timespan = 180; GetData();
+            });} , child: Text("sista halvår")),
+            TextButton(style: ButtonStyle(
+              foregroundColor: MaterialStateProperty.all<Color>(Colors.black),
+              backgroundColor: timespan == 14 ? MaterialStateProperty.all<Color>(Colors.grey):MaterialStateProperty.all<Color>(Colors.white),
+            ),
+                onPressed: (){setState(() {
+                  timespan = 14; GetData();
+                });} , child: Text("sista 14 dagar")),
+            TextButton(style: ButtonStyle(
+              foregroundColor: MaterialStateProperty.all<Color>(Colors.black),
+              backgroundColor: timespan == 24 ? MaterialStateProperty.all<Color>(Colors.grey):MaterialStateProperty.all<Color>(Colors.white),
+            ),onPressed: (){setState(() {
+              timespan = 24; GetData();
+            });}, child: Text("sista 24 tim")),
+            TextButton(style: ButtonStyle(
+              foregroundColor: MaterialStateProperty.all<Color>(Colors.black),
+              backgroundColor: timespan == 60 ? MaterialStateProperty.all<Color>(Colors.grey):MaterialStateProperty.all<Color>(Colors.white),
+            ),onPressed: (){setState(() {
+              timespan = 60; GetData();
+            });}, child: Text("sista 60 min")),
+            ]),
+
+          createDiagram(list1!, captions[0], 5 , 25),
+          createDiagram(list2!, captions[1], 5 , 25),
+          createDiagram(list3!, captions[2], 5 , 25),
+          createDiagram(list4!, captions[3], -25 , 25),
+          createDiagram(list5!, captions[4], -25 , 25),
+          createDiagram(list6!, captions[5], 5 , 25),
+        ]));}
+}
+
+
+class Settings extends StatefulWidget {
+  const Settings({super.key});
+
+  @override
+  State<Settings> createState() => _MySettings();
+}
+
+class _MySettings extends State<Settings> {
+
+  final ImagePicker _picker = ImagePicker();
+
+  int? timer = prefs!.getInt("update-interval");
+  int? language = prefs!.getInt("language");
+  int? unit = prefs!.getInt("unit");
+
+  Dialog buildRefreshDialog(BuildContext context)
+  {
+    return Dialog(
+        child:
+        SizedBox(width: 200, height: 400, child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            //Container(height:10),
+            Text("Uppdateringsintervall", style:TextStyle(fontSize: 20)),
+            //Container(height: 10, width: 100),
+            StatefulBuilder(builder: (context, setState) {
+              return Column(children: [
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("30s"),
+                  value: 30,
+                  groupValue: timer,
+                  onChanged: (int? value) {
+                    prefs!.setInt("update-interval", value!);
+                    setState(() {
+                      timer = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("1 min"),
+                  value: 60,
+                  groupValue: timer,
+                  onChanged: (int? value){
+                    prefs!.setInt("update-interval", value!);
+                    setState(() {
+                      timer = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("2 min"),
+                  value: 120,
+                  groupValue: timer,
+                  onChanged: (int? value){
+                    prefs!.setInt("update-interval", value!);
+                    setState(() {
+                      timer = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("5 min"),
+                  value: 300,
+                  groupValue: timer,
+                  onChanged: (int? value){
+                    prefs!.setInt("update-interval", value!);
+                    setState(() {
+                      timer = value;
+                    });
+                  },
+                )]);
+            }),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context, true), // passing true
+              child: Text('Stäng'),
+            ),
+          ],
+        )
+        ));
+  }
+
+  Dialog buildLanguageDialog(BuildContext context)
+  {
+    return Dialog(
+        child:
+        SizedBox(width: 200, height: 400, child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            //Container(height:10),
+            Text("Språk", style:TextStyle(fontSize: 20)),
+            //Container(height: 10, width: 100),
+            StatefulBuilder(builder: (context, setState) {
+              return Column(children: [
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Svenska"),
+                  value: 0,
+                  groupValue: language,
+                  onChanged: (int? value) {
+                    prefs!.setInt("language", value!);
+                    setState(() {
+                      language = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Franska"),
+                  value: 1,
+                  groupValue: language,
+                  onChanged: (int? value){
+                    prefs!.setInt("language", value!);
+                    setState(() {
+                      language = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Swahili"),
+                  value: 2,
+                  groupValue: language,
+                  onChanged: (int? value){
+                    prefs!.setInt("language", value!);
+                    setState(() {
+                      language = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Annat"),
+                  value: 3,
+                  groupValue: language,
+                  onChanged: (int? value){
+                    prefs!.setInt("language", value!);
+                    setState(() {
+                      language = value;
+                    });
+                  },
+                )]);
+            }),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context, true), // passing true
+              child: Text('Stäng'),
+            ),
+          ],
+        )
+        ));
+  }
+
+  Dialog buildUnitDialog(BuildContext context)
+  {
+    return Dialog(
+        child:
+        SizedBox(width: 200, height: 400, child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            //Container(height:10),
+            Text("Enhet", style:TextStyle(fontSize: 20)),
+            //Container(height: 10, width: 100),
+            StatefulBuilder(builder: (context, setState) {
+              return Column(children: [
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Celsius"),
+                  value: 0,
+                  groupValue: unit,
+                  onChanged: (int? value) {
+                    prefs!.setInt("unit", value!);
+                    setState(() {
+                      unit = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Kelvin"),
+                  value: 1,
+                  groupValue: unit,
+                  onChanged: (int? value){
+                    prefs!.setInt("unit", value!);
+                    setState(() {
+                      unit = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Farenheit"),
+                  value: 2,
+                  groupValue: unit,
+                  onChanged: (int? value){
+                    prefs!.setInt("unit", value!);
+                    setState(() {
+                      unit = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Annat"),
+                  value: 3,
+                  groupValue: unit,
+                  onChanged: (int? value){
+                    prefs!.setInt("unit", value!);
+                    setState(() {
+                      unit = value;
+                    });
+                  },
+                )]);
+            }),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context, true), // passing true
+              child: Text('Stäng'),
+            ),
+          ],
+        )
+        ));
+  }
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text('Inställningar'),
+        ),
+        body: ListView(
+          padding: EdgeInsets.all(10),
+          children: [Row(children: [Icon(Icons.schedule, size:32), TextButton(onPressed:(){
+            showDialog(context: context, builder: (BuildContext context){
+              return buildRefreshDialog(context);
+          });
+    }, child: Text('Uppdateringsintervall')), ]),
+          Row(children: [
+            Icon(Icons.pets, size:32),
+            TextButton(onPressed:
+          () async {file = await _picker.pickImage(source: ImageSource.gallery);
+                  var dir = await getApplicationDocumentsDirectory();
+                  File file2 = File(file!.path);
+                  await file2.copy('${dir.path}/${file!.name}');
+                  myImage = FileImage(File('${dir.path}/${file!.name}'));
+
+                  await prefs!.setString("filename", '${dir.path}/${file!.name}');
+              }, child: Text('Välj katt'))]),
+            Row(children: [
+              Icon(Icons.language, size:32),
+              TextButton(onPressed:(){
+                showDialog(context: context, builder: (BuildContext context){
+                  return buildLanguageDialog(context);
+                });
+              }, child: Text('Språk'))]),
+            Row(children: [
+              Icon(Icons.thermostat, size:32),
+              TextButton(onPressed:(){
+                showDialog(context: context, builder: (BuildContext context){
+                  return buildUnitDialog(context);
+                });
+              }, child: Text('Enhet'))]),
+    ],
+    )
+        );
+  }
+}
