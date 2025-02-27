@@ -166,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
         height: tileHeight,
         color: tileColor,
         child: Column( mainAxisAlignment: MainAxisAlignment.center,
-            children: [ Text(style: GoogleFonts.titilliumWeb(fontSize: 32,
+            children: [ Text(style: GoogleFonts.titilliumWeb(fontSize: 48,
                 fontWeight: FontWeight.w300), tempArray[index].toStringAsFixed(1) + '\u02da'),
               Text(style: TextStyle(fontSize: 16), text),
               IconButton(
@@ -279,15 +279,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       createTile(captions[5], 5, tileColors[5], Icons.kitchen),
                       Container(width: columnSpacing),
-                      Container(
-                          width: tileWidth,
-                          height: tileHeight,
-                          color: Colors.green,
-                          )]),
+                      createTile(captions[4], 4, tileColors[4], Icons.church)
+                    ]),
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[4], 4, tileColors[4], Icons.church),
+                      Container(
+                        width: tileWidth,
+                        height: tileHeight,
+                        color: Colors.green,
+                      ),
                       Container(width: columnSpacing),
                       Image(width: tileWidth, height: tileHeight, image: myImage)
                     ]),
