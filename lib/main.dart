@@ -9,11 +9,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 SharedPreferences ?prefs;
 XFile? file = XFile('assets/katt.jpg');
 
 FileImage myImage = FileImage(File('assets/katt.jpg'));
+
+TextStyle mainFont = GoogleFonts.exo2(fontSize: 48, fontWeight: FontWeight.w300);
+TextStyle subFont = GoogleFonts.exo2(fontSize: 16, fontWeight: FontWeight.w500);
+TextStyle dateFont = GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500);
 
 List<String> requestStrings =
 [
@@ -39,16 +44,23 @@ List<Color> tileColors =
 [
   Colors.red,
   Colors.green,
-  Colors.blue,
+  Colors.blueGrey,
   Colors.grey,
   Colors.white,
-  Colors.yellow
+  Colors.yellow,
+  Colors.lightBlue
 ];
 
 double tileWidth = 175;
 double tileHeight = 175;
 double rowSpacing = 10;
 double columnSpacing = 10;
+double radius = 8.0;
+
+int? tileColor = 0;
+bool? showTime = false;
+Color tileColorColor = Colors.grey;
+bool? useRoundCorners = false;
 
 void main() {
   runApp(const MyApp());
@@ -92,15 +104,17 @@ class _MyHomePageState extends State<MyHomePage> {
   void GetData() async
   {
     requestStrings.asMap().forEach((index, requestString) async {
-      http.Response result = await http.get(Uri.parse(requestString + '&results=1'));
+      http.Response result = await http.get(Uri.parse(requestString + '&results=5'));
       dynamic map = jsonDecode(result.body);
       setState(() {
-        if(map['feeds'][0]['field1'] != null)
-        {
-          tempArray[index] = double.parse(map['feeds'][0]['field1']);
-          String time_tmp = map['feeds'][0]['created_at'];
-          List<String> list = time_tmp.split("T");
-          timeArray[index] = list[0] + " " + list[1].substring(0, 8);
+        for(int i = 4; i >= 0 ; i--) {
+          if (map['feeds'][i]['field1'] != null) {
+            tempArray[index] = double.parse(map['feeds'][i]['field1']);
+            String time_tmp = map['feeds'][i]['created_at'];
+            List<String> list = time_tmp.split("T");
+            timeArray[index] = list[0] + " " + list[1].substring(0, 8);
+            break;
+          }
         }
       });
     });
@@ -122,7 +136,6 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     GetPrefs();
-
     GetData();
   }
 
@@ -157,18 +170,50 @@ class _MyHomePageState extends State<MyHomePage> {
         });
           }
     );
+
+    tileColor = prefs!.getInt("color");
+    if(tileColor == null)
+      tileColorColor = Colors.grey;
+    if(tileColor == 0)
+      tileColorColor = Colors.transparent;
+    if(tileColor == 1)
+      tileColorColor = Colors.grey;
+    if(tileColor == 2)
+      tileColorColor = Colors.blue;
+    if(tileColor == 3)
+      tileColorColor = Colors.red;
+
+    showTime = prefs!.getBool("time");
+    if(showTime == null)
+    {
+        showTime = false;
+    }
+
+    useRoundCorners = prefs!.getBool("round-corners");
+    if(useRoundCorners == null)
+      useRoundCorners = false;
   }
 
   Container createTile(String text, int index, Color tileColor, IconData tileIcon)
   {
+    String dateLocal = "";
+
+    if(timeArray[index] != '') {
+      var dateTime = DateFormat("yyyy-MM-dd HH:mm:ss").parse(timeArray[index], true);
+      dateLocal = DateFormat("yyyy-MM-dd HH:mm:ss").format(dateTime.toLocal());
+    }
+
     return Container(
         width: tileWidth,
         height: tileHeight,
-        color: tileColor,
+        //color: tileColor,
+        decoration: BoxDecoration(
+          color: tileColor,
+          borderRadius: useRoundCorners!?BorderRadius.circular(radius):BorderRadius.zero,
+        ),
         child: Column( mainAxisAlignment: MainAxisAlignment.center,
-            children: [ Text(style: GoogleFonts.titilliumWeb(fontSize: 48,
-                fontWeight: FontWeight.w300), tempArray[index].toStringAsFixed(1) + '\u02da'),
-              Text(style: TextStyle(fontSize: 16), text),
+            children: [ Text(style: mainFont, tempArray[index].toStringAsFixed(1) + '\u02da'),
+              Text(style: subFont, text),
               IconButton(
                   onPressed: () {
                   },
@@ -179,7 +224,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: Colors.black,
                   )
               ),
-              Text(style: TextStyle(fontSize: 12), timeArray[index]),
+              showTime!?Text(style: dateFont, dateLocal.toString()):Text(""),
             ]));
   }
 
@@ -240,9 +285,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[0], 0, tileColors[0], Icons.bed_outlined),
+                      createTile(captions[0], 0, tileColor != 0 ? tileColorColor: tileColors[0], Icons.bed),
                       Container(width: columnSpacing),
-                      createTile(captions[1], 1, tileColors[1], Icons.arrow_upward_outlined),
+                      createTile(captions[1], 1, tileColor != 0 ? tileColorColor: tileColors[1], Icons.arrow_upward),
                     ]),
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
@@ -270,16 +315,16 @@ class _MyHomePageState extends State<MyHomePage> {
                               Container(height: 20),
                             ])),
                        */
-                      createTile(captions[2], 2, tileColors[2], Icons.kitchen),
+                      createTile(captions[2], 2, tileColor != 0 ? tileColorColor: tileColors[2], Icons.kitchen),
                       Container(width: columnSpacing),
-                      createTile(captions[3], 3, tileColors[3], Icons.park_rounded)
+                      createTile(captions[3], 3, tileColor != 0 ? tileColorColor: tileColors[3], Icons.park_rounded)
                 ]),
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[5], 5, tileColors[5], Icons.kitchen),
+                      createTile(captions[5], 5, tileColor != 0 ? tileColorColor: tileColors[5], Icons.kitchen),
                       Container(width: columnSpacing),
-                      createTile(captions[4], 4, tileColors[4], Icons.church)
+                      createTile(captions[4], 4, tileColor != 0 ? tileColorColor: tileColors[4], Icons.church)
                     ]),
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
@@ -287,10 +332,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       Container(
                         width: tileWidth,
                         height: tileHeight,
-                        color: Colors.green,
+                        decoration: BoxDecoration(
+                          color: tileColor != 0 ? tileColorColor: tileColors[6],
+                          borderRadius: useRoundCorners!?BorderRadius.circular(radius):BorderRadius.zero,
+                        ),
                       ),
                       Container(width: columnSpacing),
-                      Image(width: tileWidth, height: tileHeight, image: myImage)
+                      ClipRRect(
+                        borderRadius: useRoundCorners!?BorderRadius.circular(radius):BorderRadius.zero,
+                        child: Image(width: tileWidth, height: tileHeight, image: myImage),
+                      )
+
                     ]),
               ],
             )
@@ -515,152 +567,82 @@ class _MySettings extends State<Settings> {
         ));
   }
 
-  Dialog buildLanguageDialog(BuildContext context)
-  {
-    return Dialog(
-        child:
-        SizedBox(width: 200, height: 400, child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            //Container(height:10),
-            Text("Språk", style:TextStyle(fontSize: 20)),
-            //Container(height: 10, width: 100),
-            StatefulBuilder(builder: (context, setState) {
-              return Column(children: [
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Svenska"),
-                  value: 0,
-                  groupValue: language,
-                  onChanged: (int? value) {
-                    prefs!.setInt("language", value!);
-                    setState(() {
-                      language = value;
-                    });
-                  },
-                ),
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Franska"),
-                  value: 1,
-                  groupValue: language,
-                  onChanged: (int? value){
-                    prefs!.setInt("language", value!);
-                    setState(() {
-                      language = value;
-                    });
-                  },
-                ),
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Swahili"),
-                  value: 2,
-                  groupValue: language,
-                  onChanged: (int? value){
-                    prefs!.setInt("language", value!);
-                    setState(() {
-                      language = value;
-                    });
-                  },
-                ),
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Annat"),
-                  value: 3,
-                  groupValue: language,
-                  onChanged: (int? value){
-                    prefs!.setInt("language", value!);
-                    setState(() {
-                      language = value;
-                    });
-                  },
-                )]);
-            }),
-            OutlinedButton(
-              onPressed: () => Navigator.pop(context, true), // passing true
-              child: Text('Stäng'),
-            ),
-          ],
-        )
-        ));
-  }
-
-  Dialog buildUnitDialog(BuildContext context)
-  {
-    return Dialog(
-        child:
-        SizedBox(width: 200, height: 400, child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            //Container(height:10),
-            Text("Enhet", style:TextStyle(fontSize: 20)),
-            //Container(height: 10, width: 100),
-            StatefulBuilder(builder: (context, setState) {
-              return Column(children: [
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Celsius"),
-                  value: 0,
-                  groupValue: unit,
-                  onChanged: (int? value) {
-                    prefs!.setInt("unit", value!);
-                    setState(() {
-                      unit = value;
-                    });
-                  },
-                ),
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Kelvin"),
-                  value: 1,
-                  groupValue: unit,
-                  onChanged: (int? value){
-                    prefs!.setInt("unit", value!);
-                    setState(() {
-                      unit = value;
-                    });
-                  },
-                ),
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Farenheit"),
-                  value: 2,
-                  groupValue: unit,
-                  onChanged: (int? value){
-                    prefs!.setInt("unit", value!);
-                    setState(() {
-                      unit = value;
-                    });
-                  },
-                ),
-                RadioListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                  visualDensity: VisualDensity.compact,
-                  title: Text("Annat"),
-                  value: 3,
-                  groupValue: unit,
-                  onChanged: (int? value){
-                    prefs!.setInt("unit", value!);
-                    setState(() {
-                      unit = value;
-                    });
-                  },
-                )]);
-            }),
-            OutlinedButton(
-              onPressed: () => Navigator.pop(context, true), // passing true
-              child: Text('Stäng'),
-            ),
-          ],
-        )
-        ));
+    Dialog buildColorDialog(BuildContext context)
+    {
+      return Dialog(
+          child:
+          SizedBox(width: 200, height: 400, child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              //Container(height:10),
+              Text("Brickfärg", style:TextStyle(fontSize: 20)),
+              //Container(height: 10, width: 100),
+              StatefulBuilder(builder: (context, setState) {
+                return Column(children: [
+                  RadioListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                    visualDensity: VisualDensity.compact,
+                    title: Text("Färgexplosion"),
+                    value: 0,
+                    groupValue: tileColor,
+                    onChanged: (int? value){
+                      prefs!.setInt("color", value!);
+                      setState(() {
+                        tileColor = value;
+                      });
+                    },
+                  ),
+                  RadioListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                    visualDensity: VisualDensity.compact,
+                    title: Text("Grå"),
+                    value: 1,
+                    groupValue: tileColor,
+                    onChanged: (int? value) {
+                      prefs!.setInt("color", value!);
+                      setState(() {
+                        tileColor = value;
+                        tileColorColor = Colors.grey;
+                      });
+                    },
+                  ),
+                  RadioListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                    visualDensity: VisualDensity.compact,
+                    title: Text("Blå"),
+                    value: 2,
+                    groupValue: tileColor,
+                    onChanged: (int? value) {
+                      prefs!.setInt("color", value!);
+                      setState(() {
+                        tileColor = value;
+                        tileColorColor = Colors.blue;
+                      });
+                    },
+                  ),
+                  RadioListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                    visualDensity: VisualDensity.compact,
+                    title: Text("Röd"),
+                    value: 3,
+                    groupValue: tileColor,
+                    onChanged: (int? value) {
+                      prefs!.setInt("color", value!);
+                      setState(() {
+                        tileColor = value;
+                        tileColorColor = Colors.red;
+                      });
+                    },
+                  ),
+                ]);
+              }),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context, true), // passing true
+                child: Text('Stäng'),
+              ),
+            ],
+          )
+          ));
   }
 
   // This widget is the root of your application.
@@ -672,7 +654,7 @@ class _MySettings extends State<Settings> {
         ),
         body: ListView(
           padding: EdgeInsets.all(10),
-          children: [Row(children: [Icon(Icons.schedule, size:32), TextButton(onPressed:(){
+          children: [Row(children: [Icon(Icons.update, size:32), TextButton(onPressed:(){
             showDialog(context: context, builder: (BuildContext context){
               return buildRefreshDialog(context);
           });
@@ -689,19 +671,38 @@ class _MySettings extends State<Settings> {
                   await prefs!.setString("filename", '${dir.path}/${file!.name}');
               }, child: Text('Välj katt'))]),
             Row(children: [
-              Icon(Icons.language, size:32),
+              Icon(Icons.palette, size:32),
               TextButton(onPressed:(){
                 showDialog(context: context, builder: (BuildContext context){
-                  return buildLanguageDialog(context);
+                  return buildColorDialog(context);
                 });
-              }, child: Text('Språk'))]),
+              }, child: Text('Brickfärg'))]),
             Row(children: [
-              Icon(Icons.thermostat, size:32),
-              TextButton(onPressed:(){
-                showDialog(context: context, builder: (BuildContext context){
-                  return buildUnitDialog(context);
-                });
-              }, child: Text('Enhet'))]),
+              Icon(Icons.timer, size:32),
+              Text("Visa senaste uppdateringtid"),
+              Switch(
+                value: showTime!,
+                onChanged: (bool value) {
+                  setState(() {
+                    showTime = value;
+                    prefs!.setBool("time", value);
+                  });
+                },
+                )],
+          ),
+            Row(children: [
+              Icon(Icons.rounded_corner, size:32),
+              Text("Runda hörn"),
+              Switch(
+                value: useRoundCorners!,
+                onChanged: (bool value) {
+                  setState(() {
+                    useRoundCorners = value;
+                    prefs!.setBool("round-corners", value);
+                  });
+                },
+              )],
+            )
     ],
     )
         );
