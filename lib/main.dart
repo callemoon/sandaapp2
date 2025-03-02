@@ -240,7 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
         body: Align(
             alignment: Alignment.center,
-            child: Container(        decoration: BoxDecoration(
+            child: SafeArea(child: Container(        decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -337,7 +337,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       createTile(captions[5], 5, tileColor != 0 ? tileColorColor: tileColors[5], Icons.bed),
                       Container(width: columnSpacing),
-                      createTile(captions[4], 4, tileColor != 0 ? tileColorColor: tileColors[4], Icons.church)
+                      createTile(captions[4], 4, tileColor != 0 ? tileColorColor: tileColors[4], Icons.holiday_village)
                     ]),
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
@@ -359,7 +359,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ]),
               ],
             ))
-        ));
+        )));
   }
 }
 
