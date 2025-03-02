@@ -22,12 +22,20 @@ TextStyle dateFont = GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500)
 
 List<String> requestStrings =
 [
-  'https://api.thingspeak.com/channels/631325/fields/1.json?api_key=IA9TGDTR2351DC1I',  // sovrum
-  'https://api.thingspeak.com/channels/2011583/fields/1.json?api_key=EL96SBAO527BKNP3', // Övervåning
-  'https://api.thingspeak.com/channels/2014046/fields/1.json?api_key=68ODS47UMTXTWR9K', // Kök
-  'https://api.thingspeak.com/channels/2013865/fields/1.json?api_key=PLWLFP0HG4TE9BNZ', // ute
-  'https://api.thingspeak.com/channels/2019519/fields/1.json?api_key=3HZ51EFUGWRX9DBQ', // uppsala
-  'https://api.thingspeak.com/channels/2832057/fields/1.json?api_key=SYH9X8X6V0F23933'  // uppsala inne
+  'https://api.thingspeak.com/channels/631325/fields/1.json?api_key=IA9TGDTR2351DC1I',  // sovrum sanda
+  'https://api.thingspeak.com/channels/2011583/fields/1.json?api_key=EL96SBAO527BKNP3', // övervåning sanda
+  'https://api.thingspeak.com/channels/2014046/fields/1.json?api_key=68ODS47UMTXTWR9K', // kök sanda
+  'https://api.thingspeak.com/channels/2013865/fields/1.json?api_key=PLWLFP0HG4TE9BNZ', // ute sanda
+  'https://api.thingspeak.com/channels/2019519/fields/1.json?api_key=3HZ51EFUGWRX9DBQ', // ute uppsala
+  'https://api.thingspeak.com/channels/2832057/fields/1.json?api_key=SYH9X8X6V0F23933'  // sovrum uppsala
+];
+
+List<Color> colorList =
+[
+  Colors.transparent,
+  Colors.grey[300]!,
+  Colors.blue[100]!,
+  Colors.red[200]!,
 ];
 
 List<String> captions =
@@ -61,6 +69,7 @@ int? tileColor = 0;
 bool? showTime = false;
 Color tileColorColor = Colors.grey;
 bool? useRoundCorners = false;
+bool? gradient = false;
 
 void main() {
   runApp(const MyApp());
@@ -174,14 +183,8 @@ class _MyHomePageState extends State<MyHomePage> {
     tileColor = prefs!.getInt("color");
     if(tileColor == null)
       tileColorColor = Colors.grey;
-    if(tileColor == 0)
-      tileColorColor = Colors.transparent;
-    if(tileColor == 1)
-      tileColorColor = Colors.grey;
-    if(tileColor == 2)
-      tileColorColor = Colors.blue;
-    if(tileColor == 3)
-      tileColorColor = Colors.red;
+    else
+      tileColorColor = colorList[tileColor!];
 
     showTime = prefs!.getBool("time");
     if(showTime == null)
@@ -192,6 +195,10 @@ class _MyHomePageState extends State<MyHomePage> {
     useRoundCorners = prefs!.getBool("round-corners");
     if(useRoundCorners == null)
       useRoundCorners = false;
+
+    gradient = prefs!.getBool("gradient");
+    if(gradient == null)
+      gradient = false;
   }
 
   Container createTile(String text, int index, Color tileColor, IconData tileIcon)
@@ -231,12 +238,18 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-        ),
         body: Align(
             alignment: Alignment.center,
-            child: ListView(
+            child: Container(        decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  gradient!?Colors.grey:Colors.white,
+                  Colors.white,
+                ],
+              ),
+            ), child: ListView(
               padding: EdgeInsets.all(15),
               children: [
                 Row(
@@ -322,7 +335,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[5], 5, tileColor != 0 ? tileColorColor: tileColors[5], Icons.kitchen),
+                      createTile(captions[5], 5, tileColor != 0 ? tileColorColor: tileColors[5], Icons.bed),
                       Container(width: columnSpacing),
                       createTile(captions[4], 4, tileColor != 0 ? tileColorColor: tileColors[4], Icons.church)
                     ]),
@@ -345,7 +358,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                     ]),
               ],
-            )
+            ))
         ));
   }
 }
@@ -477,7 +490,6 @@ class _MyDiagrams extends State<Diagrams> {
         ]));}
 }
 
-
 class Settings extends StatefulWidget {
   const Settings({super.key});
 
@@ -567,82 +579,82 @@ class _MySettings extends State<Settings> {
         ));
   }
 
-    Dialog buildColorDialog(BuildContext context)
-    {
-      return Dialog(
-          child:
-          SizedBox(width: 200, height: 400, child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              //Container(height:10),
-              Text("Brickfärg", style:TextStyle(fontSize: 20)),
-              //Container(height: 10, width: 100),
-              StatefulBuilder(builder: (context, setState) {
-                return Column(children: [
-                  RadioListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                    visualDensity: VisualDensity.compact,
-                    title: Text("Färgexplosion"),
-                    value: 0,
-                    groupValue: tileColor,
-                    onChanged: (int? value){
-                      prefs!.setInt("color", value!);
-                      setState(() {
-                        tileColor = value;
-                      });
-                    },
-                  ),
-                  RadioListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                    visualDensity: VisualDensity.compact,
-                    title: Text("Grå"),
-                    value: 1,
-                    groupValue: tileColor,
-                    onChanged: (int? value) {
-                      prefs!.setInt("color", value!);
-                      setState(() {
-                        tileColor = value;
-                        tileColorColor = Colors.grey;
-                      });
-                    },
-                  ),
-                  RadioListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                    visualDensity: VisualDensity.compact,
-                    title: Text("Blå"),
-                    value: 2,
-                    groupValue: tileColor,
-                    onChanged: (int? value) {
-                      prefs!.setInt("color", value!);
-                      setState(() {
-                        tileColor = value;
-                        tileColorColor = Colors.blue;
-                      });
-                    },
-                  ),
-                  RadioListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
-                    visualDensity: VisualDensity.compact,
-                    title: Text("Röd"),
-                    value: 3,
-                    groupValue: tileColor,
-                    onChanged: (int? value) {
-                      prefs!.setInt("color", value!);
-                      setState(() {
-                        tileColor = value;
-                        tileColorColor = Colors.red;
-                      });
-                    },
-                  ),
-                ]);
-              }),
-              OutlinedButton(
-                onPressed: () => Navigator.pop(context, true), // passing true
-                child: Text('Stäng'),
-              ),
-            ],
-          )
-          ));
+  Dialog buildColorDialog(BuildContext context)
+  {
+    return Dialog(
+        child:
+        SizedBox(width: 200, height: 400, child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            //Container(height:10),
+            Text("Brickfärg", style:TextStyle(fontSize: 20)),
+            //Container(height: 10, width: 100),
+            StatefulBuilder(builder: (context, setState) {
+              return Column(children: [
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Färgexplosion"),
+                  value: 0,
+                  groupValue: tileColor,
+                  onChanged: (int? value){
+                    prefs!.setInt("color", value!);
+                    setState(() {
+                      tileColor = value;
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Grå"),
+                  value: 1,
+                  groupValue: tileColor,
+                  onChanged: (int? value) {
+                    prefs!.setInt("color", value!);
+                    setState(() {
+                      tileColor = value;
+                      tileColorColor = colorList[tileColor!];
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Blå"),
+                  value: 2,
+                  groupValue: tileColor,
+                  onChanged: (int? value) {
+                    prefs!.setInt("color", value!);
+                    setState(() {
+                      tileColor = value;
+                      tileColorColor = colorList[tileColor!];
+                    });
+                  },
+                ),
+                RadioListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 5.0),
+                  visualDensity: VisualDensity.compact,
+                  title: Text("Röd"),
+                  value: 3,
+                  groupValue: tileColor,
+                  onChanged: (int? value) {
+                    prefs!.setInt("color", value!);
+                    setState(() {
+                      tileColor = value;
+                      tileColorColor = colorList[tileColor!];
+                    });
+                  },
+                ),
+              ]);
+            }),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context, true), // passing true
+              child: Text('Stäng'),
+            ),
+          ],
+        )
+        ));
   }
 
   // This widget is the root of your application.
@@ -654,22 +666,47 @@ class _MySettings extends State<Settings> {
         ),
         body: ListView(
           padding: EdgeInsets.all(10),
-          children: [Row(children: [Icon(Icons.update, size:32), TextButton(onPressed:(){
-            showDialog(context: context, builder: (BuildContext context){
-              return buildRefreshDialog(context);
-          });
-    }, child: Text('Uppdateringsintervall')), ]),
-          Row(children: [
-            Icon(Icons.pets, size:32),
-            TextButton(onPressed:
-          () async {file = await _picker.pickImage(source: ImageSource.gallery);
-                  var dir = await getApplicationDocumentsDirectory();
-                  File file2 = File(file!.path);
-                  await file2.copy('${dir.path}/${file!.name}');
-                  myImage = FileImage(File('${dir.path}/${file!.name}'));
+          children: [
+            Row(children: [Icon(Icons.update, size:32), TextButton(onPressed:(){
+              showDialog(context: context, builder: (BuildContext context){
+                return buildRefreshDialog(context);
+              });
+            }, child: Text('Uppdateringsintervall')), ]),
+            Row(
+              children: [
+                Icon(Icons.timer, size: 32),
+                Text("Visa senaste uppdateringtid"),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Transform.scale(
+                      scale: 0.8, // Adjust this value to change the size of the Switch
+                      child: Switch(
+                        value: showTime!,
+                        onChanged: (bool value) {
+                          setState(() {
+                            showTime = value;
+                            prefs!.setBool("time", value);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
-                  await prefs!.setString("filename", '${dir.path}/${file!.name}');
+            Row(children: [
+              Icon(Icons.pets, size:32),
+              TextButton(onPressed:
+                  () async {file = await _picker.pickImage(source: ImageSource.gallery);
+              var dir = await getApplicationDocumentsDirectory();
+              File file2 = File(file!.path);
+              await file2.copy('${dir.path}/${file!.name}');
+              myImage = FileImage(File('${dir.path}/${file!.name}'));
+              await prefs!.setString("filename", '${dir.path}/${file!.name}');
               }, child: Text('Välj katt'))]),
+
             Row(children: [
               Icon(Icons.palette, size:32),
               TextButton(onPressed:(){
@@ -677,34 +714,56 @@ class _MySettings extends State<Settings> {
                   return buildColorDialog(context);
                 });
               }, child: Text('Brickfärg'))]),
-            Row(children: [
-              Icon(Icons.timer, size:32),
-              Text("Visa senaste uppdateringtid"),
-              Switch(
-                value: showTime!,
-                onChanged: (bool value) {
-                  setState(() {
-                    showTime = value;
-                    prefs!.setBool("time", value);
-                  });
-                },
-                )],
-          ),
-            Row(children: [
-              Icon(Icons.rounded_corner, size:32),
-              Text("Runda hörn"),
-              Switch(
-                value: useRoundCorners!,
-                onChanged: (bool value) {
-                  setState(() {
-                    useRoundCorners = value;
-                    prefs!.setBool("round-corners", value);
-                  });
-                },
-              )],
+
+            Row(
+              children: [
+                Icon(Icons.rounded_corner, size: 32),
+                Text("Runda hörn"),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Transform.scale(
+                      scale: 0.8, // Adjust this value to resize the Switch
+                      child: Switch(
+                        value: useRoundCorners!,
+                        onChanged: (bool value) {
+                          setState(() {
+                            useRoundCorners = value;
+                            prefs!.setBool("round-corners", value);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Icon(Icons.gradient, size: 32),
+                Text("Gradient"),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Transform.scale(
+                      scale: 0.8, // Adjust this value to resize the Switch
+                      child: Switch(
+                        value: gradient!,
+                        onChanged: (bool value) {
+                          setState(() {
+                            gradient = value;
+                            prefs!.setBool("gradient", value);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             )
-    ],
-    )
-        );
+          ],
+        )
+    );
   }
 }
+
