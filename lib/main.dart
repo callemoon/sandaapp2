@@ -667,6 +667,14 @@ class _MySettings extends State<Settings> {
         body: ListView(
           padding: EdgeInsets.all(10),
           children: [
+
+          Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(10),
+          ), child:
+
+          Column(children: [
+
             Row(children: [Icon(Icons.update, size:32), TextButton(onPressed:(){
               showDialog(context: context, builder: (BuildContext context){
                 return buildRefreshDialog(context);
@@ -695,7 +703,13 @@ class _MySettings extends State<Settings> {
                 ),
               ],
             ),
-
+            ])),
+            Container(height: 10),
+            Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(10),
+            ), child:
+            Column(children: [
             Row(children: [
               Icon(Icons.pets, size:32),
               TextButton(onPressed:
@@ -760,7 +774,7 @@ class _MySettings extends State<Settings> {
                   ),
                 ),
               ],
-            )
+            )]))
           ],
         )
     );
