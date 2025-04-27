@@ -16,7 +16,7 @@ XFile? file = XFile('assets/katt.jpg');
 
 FileImage myImage = FileImage(File('assets/katt.jpg'));
 
-TextStyle mainFont = GoogleFonts.exo2(fontSize: 48, fontWeight: FontWeight.w300);
+TextStyle mainFont = GoogleFonts.exo2(fontSize: 54, fontWeight: FontWeight.w300);
 TextStyle subFont = GoogleFonts.exo2(fontSize: 16, fontWeight: FontWeight.w500);
 TextStyle dateFont = GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500);
 
@@ -27,7 +27,8 @@ List<String> requestStrings =
   'https://api.thingspeak.com/channels/2014046/fields/1.json?api_key=68ODS47UMTXTWR9K', // kök sanda
   'https://api.thingspeak.com/channels/2013865/fields/1.json?api_key=PLWLFP0HG4TE9BNZ', // ute sanda
   'https://api.thingspeak.com/channels/2019519/fields/1.json?api_key=3HZ51EFUGWRX9DBQ', // ute uppsala
-  'https://api.thingspeak.com/channels/2832057/fields/1.json?api_key=SYH9X8X6V0F23933'  // sovrum uppsala
+  'https://api.thingspeak.com/channels/2832057/fields/1.json?api_key=SYH9X8X6V0F23933',  // sovrum uppsala
+  'https://api.thingspeak.com/channels/2937216/fields/1.json?api_key=AZM8HHSG7WQ6DT49'  // fukt
 ];
 
 List<Color> colorList =
@@ -45,7 +46,8 @@ List<String> captions =
   'kök sanda',
   'ute sanda',
   'ute uppsala',
-  'sovrum uppsala'
+  'sovrum uppsala',
+  'fuktighet'
 ];
 
 List<Color> tileColors =
@@ -100,7 +102,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   double hum1 = 0.0;
 
-  static const int temperatures = 6;
+  static const int temperatures = 7;
 
   List<double> tempArray = List.filled(temperatures, 0.0);
   List<String> timeArray = List.filled(temperatures, '');
@@ -240,7 +242,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
         body: Align(
             alignment: Alignment.center,
-            child: SafeArea(child: Container(        decoration: BoxDecoration(
+            child: Container(        decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -249,7 +251,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   Colors.white,
                 ],
               ),
-            ), child: ListView(
+            ), child: SafeArea(child: ListView(
               padding: EdgeInsets.all(15),
               children: [
                 Row(
@@ -342,14 +344,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: tileWidth,
-                        height: tileHeight,
-                        decoration: BoxDecoration(
-                          color: tileColor != 0 ? tileColorColor: tileColors[6],
-                          borderRadius: useRoundCorners!?BorderRadius.circular(radius):BorderRadius.zero,
-                        ),
-                      ),
+                      createTile(captions[6], 6, tileColor != 0 ? tileColorColor: tileColors[6], Icons.holiday_village),
                       Container(width: columnSpacing),
                       ClipRRect(
                         borderRadius: useRoundCorners!?BorderRadius.circular(radius):BorderRadius.zero,
@@ -358,8 +353,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
                     ]),
               ],
-            ))
-        )));
+            )))
+        ));
   }
 }
 
@@ -509,7 +504,7 @@ class _MySettings extends State<Settings> {
   {
     return Dialog(
         child:
-        SizedBox(width: 200, height: 400, child: Column(
+        SizedBox(width: 200, height: 300, child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             //Container(height:10),
@@ -669,7 +664,7 @@ class _MySettings extends State<Settings> {
           children: [
 
           Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: Colors.grey[200],
             borderRadius: BorderRadius.circular(10),
           ), child:
 
@@ -680,6 +675,7 @@ class _MySettings extends State<Settings> {
                 return buildRefreshDialog(context);
               });
             }, child: Text('Uppdateringsintervall')), ]),
+            Divider(height: 5, thickness: 1,),
             Row(
               children: [
                 Icon(Icons.timer, size: 32),
@@ -706,7 +702,7 @@ class _MySettings extends State<Settings> {
             ])),
             Container(height: 10),
             Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Colors.grey[200],
               borderRadius: BorderRadius.circular(10),
             ), child:
             Column(children: [
@@ -720,7 +716,7 @@ class _MySettings extends State<Settings> {
               myImage = FileImage(File('${dir.path}/${file!.name}'));
               await prefs!.setString("filename", '${dir.path}/${file!.name}');
               }, child: Text('Välj katt'))]),
-
+              Divider(height: 5, thickness: 1,),
             Row(children: [
               Icon(Icons.palette, size:32),
               TextButton(onPressed:(){
@@ -728,7 +724,7 @@ class _MySettings extends State<Settings> {
                   return buildColorDialog(context);
                 });
               }, child: Text('Brickfärg'))]),
-
+              Divider(height: 5, thickness: 1,),
             Row(
               children: [
                 Icon(Icons.rounded_corner, size: 32),
@@ -752,6 +748,7 @@ class _MySettings extends State<Settings> {
                 ),
               ],
             ),
+              Divider(height: 5, thickness: 1,),
             Row(
               children: [
                 Icon(Icons.gradient, size: 32),
