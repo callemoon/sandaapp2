@@ -203,6 +203,41 @@ class _MyHomePageState extends State<MyHomePage> {
       gradient = false;
   }
 
+
+  Container createTilePercent(String text, int index, Color tileColor, IconData tileIcon)
+  {
+    String dateLocal = "";
+
+    if(timeArray[index] != '') {
+      var dateTime = DateFormat("yyyy-MM-dd HH:mm:ss").parse(timeArray[index], true);
+      dateLocal = DateFormat("yyyy-MM-dd HH:mm:ss").format(dateTime.toLocal());
+    }
+
+    return Container(
+        width: tileWidth,
+        height: tileHeight,
+        //color: tileColor,
+        decoration: BoxDecoration(
+          color: tileColor,
+          borderRadius: useRoundCorners!?BorderRadius.circular(radius):BorderRadius.zero,
+        ),
+        child: Column( mainAxisAlignment: MainAxisAlignment.center,
+            children: [ Text(style: mainFont, tempArray[index].toStringAsFixed(0) + '%'),
+              Text(style: subFont, text),
+              IconButton(
+                  onPressed: () {
+                  },
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    tileIcon,
+                    size: 44.0,
+                    color: Colors.black,
+                  )
+              ),
+              showTime!?Text(style: dateFont, dateLocal.toString()):Text(""),
+            ]));
+  }
+
   Container createTile(String text, int index, Color tileColor, IconData tileIcon)
   {
     String dateLocal = "";
@@ -344,7 +379,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Container(height: rowSpacing),
                 Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      createTile(captions[6], 6, tileColor != 0 ? tileColorColor: tileColors[6], Icons.holiday_village),
+                      createTilePercent(captions[6], 6, tileColor != 0 ? tileColorColor: tileColors[6], Icons.water_drop),
                       Container(width: columnSpacing),
                       ClipRRect(
                         borderRadius: useRoundCorners!?BorderRadius.circular(radius):BorderRadius.zero,
